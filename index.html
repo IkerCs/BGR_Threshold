@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BGR Threshold</title>
+</head>
+<body>
+    <input type="file" id="file" accept="image/*">
+    <canvas id="canvas"></canvas>
+
+    <div class="slidebars" style="display: flex; flex-direction: column">
+        <label for="bmin">B min</label>
+        <input type="range" id="bmin" min="0" max="255" value="0">
+        <label for="bmax">B max</label>
+        <input type="range" id="bmax" min="0" max="255" value="255">
+        <label for="gmin">G min</label>
+        <input type="range" id="gmin" min="0" max="255" value="0">
+        <label for="gmax">G max</label>
+        <input type="range" id="gmax" min="0" max="255" value="255">
+        <label for="rmin">R min</label>
+        <input type="range" id="rmin" min="0" max="255" value="0">
+        <label for="rmax">R max</label>
+        <input type="range" id="rmax" min="0" max="255" value="255">
+    </div>
+
+    <p id="minmax"></p>
+    <p id="min"></p>
+    <p id="max"></p>
+
+    <script>
+        const file = document.getElementById('file');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let original;
+
+        file.addEventListener('change', (e) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    ctx.putImageData(imageData, 0, 0);
+                    original = imageData;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        });
+    </script>
+
+    <script>
+        const bmin = document.getElementById('bmin');
+        const bmax = document.getElementById('bmax');
+        const gmin = document.getElementById('gmin');
+        const gmax = document.getElementById('gmax');
+        const rmin = document.getElementById('rmin');
+        const rmax = document.getElementById('rmax');
+        const minmax = document.getElementById('minmax');
+        const min = document.getElementById('min');
+        const max = document.getElementById('max');
+
+        function updateImage() {
+            const imageData = ctx.createImageData(original.width, original.height);
+            const minB = parseInt(bmin.value);
+            const maxB = parseInt(bmax.value);
+            const minG = parseInt(gmin.value);
+            const maxG = parseInt(gmax.value);
+            const minR = parseInt(rmin.value);
+            const maxR = parseInt(rmax.value);
+            for (let i = 0; i < original.data.length; i += 4) {
+                let r = original.data[i];
+                let g = original.data[i + 1];
+                let b = original.data[i + 2];
+                if (b >= minB && b <= maxB &&
+                    g >= minG && g <= maxG &&
+                    r >= minR && r <= maxR) {
+                    imageData.data[i] = r;
+                    imageData.data[i + 1] = g;
+                    imageData.data[i + 2] = b;
+                    imageData.data[i + 3] = original.data[i + 3];
+                } else {
+                    imageData.data[i] = 0;
+                    imageData.data[i + 1] = 0;
+                    imageData.data[i + 2] = 0;
+                    imageData.data[i + 3] = original.data[i + 3];
+                }
+            }
+            console.log(original.data)
+            ctx.putImageData(imageData, 0, 0);
+
+            minmax.textContent = `    blobDetection.set_color_range(cv::Scalar(${minB}, ${minG}, ${minR}), cv::Scalar(${maxB}, ${maxG}, ${maxR}));`;
+            min.textContent = `B: ${minB}, G: ${minG}, R: ${minR}`;
+            max.textContent = `B: ${maxB}, G: ${maxG}, R: ${maxR}`;
+        }
+
+        bmin.addEventListener('input', updateImage);
+        bmax.addEventListener('input', updateImage);
+        gmin.addEventListener('input', updateImage);
+        gmax.addEventListener('input', updateImage);
+        rmin.addEventListener('input', updateImage);
+        rmax.addEventListener('input', updateImage);
+    </script>
+</body>
+</html>
